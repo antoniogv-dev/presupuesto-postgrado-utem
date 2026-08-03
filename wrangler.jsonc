@@ -1,11 +1,19 @@
 {
-  "$schema": "./node_modules/wrangler/config-schema.json",
+  "$schema": "node_modules/wrangler/config-schema.json",
   "name": "presupuesto-postgrado-utem",
   "main": "src/index.js",
   "compatibility_date": "2026-08-03",
+
   "assets": {
     "directory": "./public",
-    "binding": "ASSETS",
-    "run_worker_first": ["/api/*"]
-  }
+    "binding": "ASSETS"
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "presupuesto_postgrado_utem",
+      "database_id": "9b15414a-7a9d-446c-90eb-d76fd668d47d"
+    }
+  ]
 }
