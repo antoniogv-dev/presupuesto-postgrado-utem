@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "strict": true,
+    "skipLibCheck": true,
+    "outDir": ".engine-build",
+    "rootDir": "."
+  },
+  "include": ["lib/calculations/**/*.ts", "lib/demo-data.ts"]
+}

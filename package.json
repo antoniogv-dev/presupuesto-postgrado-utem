@@ -1,12 +1,52 @@
 {
-  "name": "presupuesto-postgrado-utem-worker",
-  "version": "0.7.0",
+  "name": "sistema-presupuestos-postgrado-utem",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
-    "deploy": "wrangler deploy",
-    "dev": "wrangler dev"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:standalone": "node --test demo/tests/engine.test.mjs",
+    "test:e2e": "playwright test",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "tsx prisma/seed.ts",
+    "preview": "npm run build:cloudflare && opennextjs-cloudflare preview",
+    "deploy": "npm run build:cloudflare && opennextjs-cloudflare deploy",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "postinstall": "prisma generate",
+    "build:cloudflare": "opennextjs-cloudflare build",
+    "deploy:only": "opennextjs-cloudflare deploy"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.9.1",
+    "@prisma/client": "^6.5.0",
+    "next": "^15.2.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.54.2",
+    "zod": "^3.24.2",
+    "@opennextjs/cloudflare": "latest",
+    "@prisma/adapter-pg": "^6.5.0",
+    "pg": "^8.13.3"
   },
   "devDependencies": {
-    "wrangler": "^4.102.0"
+    "@eslint/eslintrc": "^3.3.0",
+    "@playwright/test": "^1.51.1",
+    "@types/node": "^22.13.10",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "eslint": "^9.22.0",
+    "eslint-config-next": "^15.2.4",
+    "prisma": "^6.5.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.8",
+    "@types/pg": "^8.11.11",
+    "wrangler": "latest"
   }
 }
