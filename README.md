@@ -18,7 +18,7 @@ Esta entrega es una primera versión funcional que incluye:
 - Esquema PostgreSQL/Prisma, incluyendo aranceles anuales por programa.
 - Pruebas unitarias y E2E base.
 
-La interfaz funciona inicialmente con datos de demostración y guarda el borrador en `localStorage`. El esquema de Prisma deja preparada la persistencia institucional.
+La interfaz funciona inicialmente con datos de demostración y guarda el borrador en `localStorage`. El esquema Prisma deja preparada la persistencia institucional.
 
 ## Demostración sin instalación
 
@@ -94,7 +94,7 @@ npm run test:e2e
 - Validación sintáctica de JavaScript y lectura HTML.
 - Verificación de carga mediante servidor HTTP local.
 
-El entorno de construcción utilizado no dispone de acceso al registro público de npm; por ello, la compilación completa de Next.js debe ejecutarse en un entorno con acceso normal al registro público de npm.
+El entorno de construcción utilizado no dispone de acceso al registro público de npm; por ello, la compilación completa de Next.js debe ejecutarse en un entorno con acceso normal a npm.
 
 
 ## Arancel propio por programa

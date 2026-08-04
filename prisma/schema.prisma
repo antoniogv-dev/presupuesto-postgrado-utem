@@ -1,0 +1,346 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProgramType {
+  DOCTORADO
+  MAGISTER_ACADEMICO
+  MAGISTER_PROFESIONAL
+  OTRO
+}
+
+enum ProgramStatus {
+  ACTIVO
+  INACTIVO
+  EN_DISENO
+}
+
+enum BudgetStatus {
+  BORRADOR
+  EN_REVISION
+  OBSERVADO
+  APROBADO
+  REEMPLAZADO
+}
+
+enum ApprovalDecision {
+  PENDIENTE
+  APROBADO
+  OBSERVADO
+  RECHAZADO
+}
+
+enum CostType {
+  PROPIO_COHORTE
+  COMPARTIDO
+}
+
+enum TuitionSource {
+  PROPIO
+  PLANTILLA_DOCTORADO
+}
+
+model User {
+  id          String      @id @default(cuid())
+  email       String      @unique
+  name        String
+  active      Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  roles       UserRole[]
+  budgets     CohortBudget[] @relation("BudgetResponsible")
+  approvals   Approval[]
+  auditLogs   AuditLog[]
+}
+
+model Role {
+  id          String     @id @default(cuid())
+  code        String     @unique
+  name        String
+  description String?
+  users       UserRole[]
+}
+
+model UserRole {
+  userId String
+  roleId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  @@id([userId, roleId])
+}
+
+model Program {
+  id                        String        @id @default(cuid())
+  code                      String        @unique
+  name                      String
+  type                      ProgramType
+  faculty                   String
+  director                  String
+  officialDurationSemesters Int
+  status                    ProgramStatus @default(ACTIVO)
+  costCenter                String?
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
+  budgets                   CohortBudget[]
+  sharedCostRules           SharedCostRule[]
+  annualTuitions            ProgramAnnualTuition[]
+}
+
+
+model ProgramAnnualTuition {
+  id        String        @id @default(cuid())
+  programId String
+  year      Int
+  amount    BigInt
+  source    TuitionSource @default(PROPIO)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  program   Program       @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([programId, year])
+  @@index([year])
+}
+
+model CohortBudget {
+  id                         String        @id @default(cuid())
+  programId                  String
+  cohortName                 String
+  startYear                  Int
+  startSemester              Int
+  durationSemesters          Int
+  initialStudents            Int
+  status                     BudgetStatus  @default(BORRADOR)
+  facultyOverheadRate        Decimal       @db.Decimal(7, 6)
+  enrollmentRecognitionRate Decimal       @db.Decimal(7, 6)
+  authorizedInitialCarryover BigInt        @default(0)
+  notes                      String?
+  responsibleId              String
+  createdAt                  DateTime      @default(now())
+  updatedAt                  DateTime      @updatedAt
+  program                    Program       @relation(fields: [programId], references: [id])
+  responsible                User          @relation("BudgetResponsible", fields: [responsibleId], references: [id])
+  versions                   BudgetVersion[]
+  semesterPeriods            SemesterPeriod[]
+  studentGroups              StudentGroup[]
+  discounts                  CohortDiscount[]
+  scholarships               InternalScholarship[]
+  externalIncome             ExternalIncome[]
+  items                      BudgetItem[]
+  annualFlows                AnnualFinancialFlow[]
+  approvals                  Approval[]
+  auditLogs                  AuditLog[]
+
+  @@unique([programId, cohortName])
+  @@index([programId, startYear, startSemester])
+}
+
+model BudgetVersion {
+  id         String       @id @default(cuid())
+  budgetId   String
+  number     Int
+  status     BudgetStatus
+  snapshot   Json
+  changeNote String?
+  createdAt  DateTime     @default(now())
+  budget     CohortBudget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  approvals  Approval[]
+  auditLogs  AuditLog[]
+  @@unique([budgetId, number])
+}
+
+model SemesterPeriod {
+  id         String       @id @default(cuid())
+  budgetId   String
+  year       Int
+  semester   Int
+  position   Int
+  budget     CohortBudget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  parameters SemesterParameters?
+  @@unique([budgetId, year, semester])
+}
+
+model SemesterParameters {
+  id                                String         @id @default(cuid())
+  periodId                          String         @unique
+  activeStudents                    Int
+  directTeachingHours               Decimal        @db.Decimal(10, 2)
+  replacementTeachingHours          Decimal        @db.Decimal(10, 2)
+  electiveSubjects                  Int            @default(0)
+  electiveSections                  Int            @default(0)
+  specializedCourses               Int            @default(0)
+  specializedSections              Int            @default(0)
+  internalTuitionScholarshipStudents Int           @default(0)
+  maintenanceScholarshipStudents    Int            @default(0)
+  maintenanceScholarshipMonths      Int            @default(0)
+  notes                              String?
+  period                             SemesterPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+}
+
+model InstitutionalParameter {
+  id          String            @id @default(cuid())
+  code        String            @unique
+  name        String
+  description String?
+  unit        String
+  annual      Boolean           @default(false)
+  editablePerBudget Boolean     @default(false)
+  values      AnnualParameter[]
+}
+
+model AnnualParameter {
+  id          String                 @id @default(cuid())
+  parameterId String
+  year        Int?
+  amount      Decimal                @db.Decimal(18, 4)
+  validFrom   DateTime?
+  validTo     DateTime?
+  parameter   InstitutionalParameter @relation(fields: [parameterId], references: [id], onDelete: Cascade)
+  @@unique([parameterId, year])
+}
+
+model StudentGroup {
+  id          String       @id @default(cuid())
+  budgetId    String
+  name        String
+  students    Int
+  description String?
+  budget      CohortBudget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+}
+
+model DiscountType {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  active      Boolean          @default(true)
+  discounts   CohortDiscount[]
+}
+
+model CohortDiscount {
+  id            String       @id @default(cuid())
+  budgetId      String
+  discountTypeId String
+  name          String
+  percentage    Decimal      @db.Decimal(7, 6)
+  students      Int
+  startYear     Int
+  startSemester Int
+  endYear       Int
+  endSemester   Int
+  note          String?
+  budget        CohortBudget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  discountType  DiscountType @relation(fields: [discountTypeId], references: [id])
+}
+
+model InternalScholarship {
+  id            String       @id @default(cuid())
+  budgetId      String
+  type          String
+  students      Int
+  coverage      Decimal?     @db.Decimal(7, 6)
+  monthlyAmount BigInt?
+  months        Int?
+  startYear     Int
+  startSemester Int
+  endYear       Int
+  endSemester   Int
+  budget        CohortBudget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+}
+
+model ExternalIncome {
+  id               String       @id @default(cuid())
+  budgetId         String
+  type             String
+  description      String
+  year             Int
+  semester         Int
+  students         Int
+  amountPerStudent BigInt
+  source           String
+  note             String?
+  budget           CohortBudget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+}
+
+model BudgetItem {
+  id          String       @id @default(cuid())
+  budgetId    String
+  name        String
+  description String
+  category    String
+  year        Int
+  semester    Int?
+  amount      BigInt
+  costType    CostType
+  periodicity String
+  note        String?
+  budget      CohortBudget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  @@index([budgetId, year, category])
+}
+
+model SharedCostRule {
+  id          String   @id @default(cuid())
+  programId   String
+  category    String
+  method      String
+  active      Boolean  @default(true)
+  description String?
+  program     Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  @@unique([programId, category])
+}
+
+model AnnualFinancialFlow {
+  id              String       @id @default(cuid())
+  budgetId        String
+  year            Int
+  grossTuition    BigInt
+  discounts       BigInt
+  tuitionScholarships BigInt
+  badDebt         BigInt
+  netTuitionIncome BigInt
+  enrollmentIncome BigInt
+  externalIncome  BigInt
+  totalIncome     BigInt
+  totalExpenses   BigInt
+  netFlow         BigInt
+  startingCarryover BigInt
+  accumulatedFlow BigInt
+  calculatedAt    DateTime     @default(now())
+  budget          CohortBudget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  @@unique([budgetId, year])
+}
+
+model Approval {
+  id         String           @id @default(cuid())
+  budgetId   String
+  versionId  String?
+  userId     String
+  decision   ApprovalDecision @default(PENDIENTE)
+  comment    String?
+  decidedAt  DateTime?
+  createdAt  DateTime         @default(now())
+  budget     CohortBudget     @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  version    BudgetVersion?   @relation(fields: [versionId], references: [id])
+  user       User             @relation(fields: [userId], references: [id])
+}
+
+model AuditLog {
+  id          String         @id @default(cuid())
+  userId      String
+  budgetId    String?
+  versionId   String?
+  entity      String
+  entityId    String
+  field       String?
+  previousValue Json?
+  newValue    Json?
+  action      String
+  createdAt   DateTime       @default(now())
+  user        User           @relation(fields: [userId], references: [id])
+  budget      CohortBudget?  @relation(fields: [budgetId], references: [id])
+  version     BudgetVersion? @relation(fields: [versionId], references: [id])
+  @@index([entity, entityId, createdAt])
+}
